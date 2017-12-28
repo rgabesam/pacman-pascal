@@ -20,13 +20,14 @@ type
 
 var
   input:text;
-  x,y,i,j:shortint;
+  x,y,i,j,pocetDuchu:shortint;
   bludiste:dvouPole;
   c:char;
   endOfGame:boolean;
   puvodniSmer, smer, pacman:souradnice;
   pocetZradla:integer;
   prvni,posledni:phledani;
+  duchove:array of souradnice;
 
 
 procedure najdiPac();
@@ -105,11 +106,19 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
           bludiste[i,j].znak:=c;
           inc(pocetZradla);
         end;
+        'Q':begin
+          bludiste[i,j].volno:=true;
+          bludiste[i,j].zradlo:=true;
+          bludiste[i,j].znak:=c;
+          inc(pocetDuchu);
+        end;
       end;
     end;
     readln(input);
   end;
   close(input);
+
+  SetLength(duchove, pocetDuchu);
 
   puvodniSmer.x := 0;
   puvodniSmer.y := 0;
@@ -175,6 +184,9 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       //bludiste[pacman.x, pacman.y].znak:='C';
       puvodniSmer.x := smer.x;
       puvodniSmer.y := smer.y;
+      sound(10000);
+      delay(50);
+      NoSound;
     end else if (bludiste[pacman.x + puvodniSmer.x, pacman.y + puvodniSmer.y].volno) then begin
       bludiste[pacman.x, pacman.y].jeTu:=false;
       gotoxy(pacman.x, pacman.y);
@@ -187,6 +199,9 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       bludiste[pacman.x, pacman.y].jeTu:=true;
       gotoxy(pacman.x, pacman.y);
       write('C');
+      sound(10000);
+      delay(50);
+      NoSound;
       //bludiste[pacman.x, pacman.y].znak:='C';
     end;
 
