@@ -6,7 +6,7 @@ type
   bunka = record
     vzdalenostOdPac:integer;
     znak:char;
-    volno, zradlo, jeTu:boolean;
+    volno, zradlo, jeTu, duch:boolean;
   end;
   dvouPole = array [1..127, 1..127] of bunka;
   souradnice = record
@@ -35,12 +35,12 @@ var pom:phledani;
 begin
   for i:=-1 to 1 do begin
     for j:=-1 to 1 do begin
-      if ((bludiste[prvni^.x + i, prvni^.y + j].vzdalenostOdPac = - 1)and (bludiste[prvni^.x + i, prvni^.y + j].volno)) then begin
+      if ((bludiste[prvni^.x + i, prvni^.y + j].vzdalenostOdPac = - 1)and (bludiste[prvni^.x + i, prvni^.y + j].volno)and ((abs(i)-abs(j))<>0)) then begin
         new(posledni^.next);
         posledni:=posledni^.next;
         posledni^.next:= nil;
-        posledni^.x:=pacman.x + i;
-        posledni^.y:=pacman.y + j;
+        posledni^.x:=prvni^.x + i;
+        posledni^.y:=prvni^.y + j;
         bludiste[prvni^.x + i, prvni^.y + j].vzdalenostOdPac:= bludiste[prvni^.x, prvni^.y].vzdalenostOdPac + 1;
       end;
     end;
@@ -48,6 +48,8 @@ begin
   pom:=prvni;
   prvni:=prvni^.next;
   dispose(pom);
+  if (prvni <> posledni) then
+    najdiPac;
 end;
 
 procedure init(pacman:souradnice);
@@ -57,8 +59,8 @@ begin
   new(prvni);
   prvni^.x:=pacman.x;
   prvni^.y:=pacman.y;
-  posledni:=nil;
-  prvni^.next:=posledni;
+  posledni:=prvni;
+  prvni^.next:=nil;
   for j:=1 to y do begin
     for i:=1 to x do begin
       bludiste[i,j].vzdalenostOdPac:=-1;
@@ -123,6 +125,15 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
     writeln();
   end;
 
+  //init(pacman);
+  //najdiPac();
+  {for j:=1 to y do begin
+    for i:=1 to x do begin
+      write(bludiste[i,j].vzdalenostOdPac:3)
+    end;
+    writeln();
+  end;}
+
   repeat
     if KeyPressed then begin
       c:=readkey;
@@ -179,19 +190,15 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       //bludiste[pacman.x, pacman.y].znak:='C';
     end;
 
-    {
-    for j:=0 to (y-1) do begin
-      for i:=0 to (x-1) do begin
-        write(bludiste[i,j].znak)
-      end;
-      writeln();
-    end;
-    }
 
     if (pocetZradla = 0) then
       endOfGame:=true;
-    delay(250);
-  until endOfGame;
+    delay(300);
+    init(pacman);
+    najdiPac();
+
+  until endOfGame;        {konec hry}
+
   clrscr;
   writeln('vyhral jsi');
   writeln('pro konec zmackni ENTER...');
