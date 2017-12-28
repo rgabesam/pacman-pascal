@@ -4,12 +4,18 @@ uses
 
 type
   bunka = record
+    vzdalenostOdPac:integer;
     znak:char;
     volno, zradlo, jeTu:boolean;
   end;
   dvouPole = array [1..127, 1..127] of bunka;
   souradnice = record
     x,y:shortint;
+  end;
+  phledani=^hledani;
+  hledani = record
+    x,y:shortint;
+    next:phledani;
   end;
 
 var
@@ -20,7 +26,46 @@ var
   endOfGame:boolean;
   puvodniSmer, smer, pacman:souradnice;
   pocetZradla:integer;
+  prvni,posledni:phledani;
 
+
+procedure najdiPac();
+var pom:phledani;
+  i,j:shortint;
+begin
+  for i:=-1 to 1 do begin
+    for j:=-1 to 1 do begin
+      if ((bludiste[prvni^.x + i, prvni^.y + j].vzdalenostOdPac = - 1)and (bludiste[prvni^.x + i, prvni^.y + j].volno)) then begin
+        new(posledni^.next);
+        posledni:=posledni^.next;
+        posledni^.next:= nil;
+        posledni^.x:=pacman.x + i;
+        posledni^.y:=pacman.y + j;
+        bludiste[prvni^.x + i, prvni^.y + j].vzdalenostOdPac:= bludiste[prvni^.x, prvni^.y].vzdalenostOdPac + 1;
+      end;
+    end;
+  end;
+  pom:=prvni;
+  prvni:=prvni^.next;
+  dispose(pom);
+end;
+
+procedure init(pacman:souradnice);
+var i,j:shortint;
+begin
+  prvni:=nil;
+  new(prvni);
+  prvni^.x:=pacman.x;
+  prvni^.y:=pacman.y;
+  posledni:=nil;
+  prvni^.next:=posledni;
+  for j:=1 to y do begin
+    for i:=1 to x do begin
+      bludiste[i,j].vzdalenostOdPac:=-1;
+    end;
+  end;
+  bludiste[pacman.x,pacman.y].vzdalenostOdPac:=0;
+end;
 
 begin                                    {http://home.pf.jcu.cz/~edpo/program/kap19.html}
   assign(input,'bludiste.txt');
