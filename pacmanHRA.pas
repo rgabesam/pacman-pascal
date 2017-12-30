@@ -27,7 +27,7 @@ var
   puvodniSmer, smer, pacman:souradnice;
   pocetZradla:integer;
   prvni,posledni:phledani;
-  duchove:array of souradnice;
+  duchove:array [1..127] of souradnice;
 
 
 procedure najdiPac();
@@ -70,6 +70,33 @@ begin
   bludiste[pacman.x,pacman.y].vzdalenostOdPac:=0;
 end;
 
+procedure pohybDuchu(duchNo:shortint);
+var
+  i,j:shortint;
+begin
+  for i:=-1 to 1 do begin
+    for j:=-1 to 1 do begin
+      if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
+        if ((bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].vzdalenostOdPac)
+        < (bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac)) then begin
+          bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
+          bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch:=true;
+          gotoxy(duchove[duchNo].x, duchove[duchNo].y);
+          if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
+            write('.')
+          else
+            write(' ');
+          gotoxy(duchove[duchNo].x + i, duchove[duchNo].y + j);
+          write('Q');
+          duchove[duchNo].x := duchove[duchNo].x + i;
+          duchove[duchNo].y := duchove[duchNo].y + j;
+          exit;
+        end;
+      end;
+    end;
+  end;
+end;
+
 begin                                    {http://home.pf.jcu.cz/~edpo/program/kap19.html}
   assign(input,'bludiste.txt');
   reset(input);
@@ -83,6 +110,7 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
     end;
   end;
   pocetZradla:=0;
+  pocetDuchu:=0;
   for j:=1 to y do begin           {inicializace herniho pole}
     for i:=1 to x do begin
       read(input, c);
@@ -111,14 +139,14 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
           bludiste[i,j].zradlo:=true;
           bludiste[i,j].znak:=c;
           inc(pocetDuchu);
+          duchove[pocetDuchu].x := i;
+          duchove[pocetDuchu].y := j;
         end;
       end;
     end;
     readln(input);
   end;
   close(input);
-
-  SetLength(duchove, pocetDuchu);
 
   puvodniSmer.x := 0;
   puvodniSmer.y := 0;
@@ -143,7 +171,7 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
     writeln();
   end;}
 
-  repeat
+  repeat                  {HRA}
     if KeyPressed then begin
       c:=readkey;
       if ord(c) = 0 then begin                  {pokud je na první pokus ord(c)=0 -> znamená to že je stisknutá klávesa extended}
@@ -177,15 +205,17 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       pacman.x := pacman.x + smer.x;
       pacman.y := pacman.y + smer.y;
       bludiste[pacman.x, pacman.y].jeTu:=true;
-      if (bludiste[pacman.x, pacman.y].znak = '.') then
+      if (bludiste[pacman.x, pacman.y].znak = '.') then begin
+        bludiste[pacman.x, pacman.y].zradlo:=false;
         pocetZradla:=pocetZradla - 1;
+      end;
       gotoxy(pacman.x, pacman.y);
       write('C');
       //bludiste[pacman.x, pacman.y].znak:='C';
       puvodniSmer.x := smer.x;
       puvodniSmer.y := smer.y;
       sound(10000);
-      delay(50);
+      delay(100);
       NoSound;
     end else if (bludiste[pacman.x + puvodniSmer.x, pacman.y + puvodniSmer.y].volno) then begin
       bludiste[pacman.x, pacman.y].jeTu:=false;
@@ -194,23 +224,29 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       bludiste[pacman.x, pacman.y].znak:=' ';
       pacman.x := pacman.x + puvodnismer.x;
       pacman.y := pacman.y + puvodnismer.y;
-      if (bludiste[pacman.x, pacman.y].znak = '.') then
+      if (bludiste[pacman.x, pacman.y].znak = '.') then begin
         pocetZradla:=pocetZradla - 1;
+        bludiste[pacman.x, pacman.y].zradlo:=false;
+      end;
       bludiste[pacman.x, pacman.y].jeTu:=true;
       gotoxy(pacman.x, pacman.y);
       write('C');
       sound(10000);
-      delay(50);
+      delay(100);
       NoSound;
       //bludiste[pacman.x, pacman.y].znak:='C';
     end;
 
+    init(pacman);
+    najdiPac();
+    for i:=1 to pocetDuchu do begin
+      pohybDuchu(i);
+    end;
 
     if (pocetZradla = 0) then
       endOfGame:=true;
-    delay(300);
-    init(pacman);
-    najdiPac();
+    delay(200);
+
 
   until endOfGame;        {konec hry}
 
