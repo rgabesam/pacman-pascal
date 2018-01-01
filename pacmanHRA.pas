@@ -20,7 +20,7 @@ type
 
 var
   input:text;
-  a,b,x,y,i,j,pocetDuchu,endOfGame,obtiznost:shortint;
+  x,y,i,j,pocetDuchu,endOfGame,obtiznost:shortint;
   bludiste:dvouPole;
   c:char;
   puvodniSmer, smer, pacman:souradnice;
@@ -77,11 +77,11 @@ var
   pohnulSe:boolean;
 begin
   pohnulSe:=false;
-  Randomize;
   if ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) <= obtiznost) then begin                    {pokud je pacman v dosahu}
         for i:=-1 to 1 do begin
           for j:=-1 to 1 do begin
-            if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
+            if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)
+            and not(bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch)) then begin
               if ((bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].vzdalenostOdPac)
               < (bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac)) then begin
                 bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
@@ -101,7 +101,8 @@ begin
           end;
         end;
   end else begin
-     if not(bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka) then begin                       {duch jde nahodne rovne dokud nenarazi na krizovatku}
+     if (not(bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka)
+     and not(bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch)) then begin                       {duch jde nahodne rovne dokud nenarazi na krizovatku}
         bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
         bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
         gotoxy(duchove[duchNo].x, duchove[duchNo].y);
@@ -115,10 +116,12 @@ begin
         duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
      end else begin                {ducha narazil na krizovatku - hleda novy random smer}
        repeat
+          Randomize;
           smerDuchu[duchNo].x:=(Random(3)-1);
           smerDuchu[duchNo].y:=(Random(3)-1);
           if (((abs(smerDuchu[duchNo].x)-abs(smerDuchu[duchNo].y))<>0)
-          and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].volno)) then begin
+          and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].volno)
+          and not(bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch)) then begin
             bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
             bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
             gotoxy(duchove[duchNo].x, duchove[duchNo].y);
@@ -167,6 +170,7 @@ begin
         bludiste[i,j].zradlo:=false;
         bludiste[i,j].jeTu:=false;
         bludiste[i,j].krizovatka:=false;
+        bludiste[i,j].duch:=false;
       end;
     end;
     pocetZradla:=0;
@@ -199,6 +203,7 @@ begin
             bludiste[i,j].zradlo:=true;
             bludiste[i,j].znak:=c;
             inc(pocetDuchu);
+            inc(pocetZradla);
             duchove[pocetDuchu].x := i;
             duchove[pocetDuchu].y := j;
           end;
@@ -287,7 +292,7 @@ begin
         pacman.x := pacman.x + smer.x;
         pacman.y := pacman.y + smer.y;
         bludiste[pacman.x, pacman.y].jeTu:=true;
-        if (bludiste[pacman.x, pacman.y].znak = '.') then begin
+        if (bludiste[pacman.x, pacman.y].zradlo) then begin
           bludiste[pacman.x, pacman.y].zradlo:=false;
           pocetZradla:=pocetZradla - 1;
           score:=score+(100000 div cas);
@@ -297,7 +302,6 @@ begin
         //bludiste[pacman.x, pacman.y].znak:='C';
         puvodniSmer.x := smer.x;
         puvodniSmer.y := smer.y;
-        sound(400);
       end else if (bludiste[pacman.x + puvodniSmer.x, pacman.y + puvodniSmer.y].volno) then begin
         bludiste[pacman.x, pacman.y].jeTu:=false;
         gotoxy(pacman.x, pacman.y);
@@ -305,7 +309,7 @@ begin
         bludiste[pacman.x, pacman.y].znak:=' ';
         pacman.x := pacman.x + puvodnismer.x;
         pacman.y := pacman.y + puvodnismer.y;
-        if (bludiste[pacman.x, pacman.y].znak = '.') then begin
+        if (bludiste[pacman.x, pacman.y].zradlo) then begin
           pocetZradla:=pocetZradla - 1;
           bludiste[pacman.x, pacman.y].zradlo:=false;
           score:=score+(100000 div cas);
@@ -313,7 +317,6 @@ begin
         bludiste[pacman.x, pacman.y].jeTu:=true;
         gotoxy(pacman.x, pacman.y);
         write('C');
-        sound(400);
         //bludiste[pacman.x, pacman.y].znak:='C';
       end;
 
@@ -330,7 +333,7 @@ begin
         end;
       end;
       cas:=cas + 2;
-      delay(250);
+      delay(220);
       NoSound;
 
     until (endOfGame < 1);        {konec hry}
