@@ -1,12 +1,12 @@
 program pacmanHRA;              {https://www.freepascal.org/docs-html/rtl/crt/window.html ... dalo by se pouzit na zrychleni ve vypisovani}
 uses
-  Crt;
+  sysutils,crt;
 
 type
   bunka = record
     vzdalenostOdPac:integer;
     znak:char;
-    volno, zradlo, jeTu, duch:boolean;
+    volno, zradlo, jeTu, duch,krizovatka:boolean;
   end;
   dvouPole = array [1..127, 1..127] of bunka;
   souradnice = record
@@ -20,13 +20,13 @@ type
 
 var
   input:text;
-  x,y,i,j,pocetDuchu,endOfGame,obtiznost:shortint;
+  a,b,x,y,i,j,pocetDuchu,endOfGame,obtiznost:shortint;
   bludiste:dvouPole;
   c:char;
   puvodniSmer, smer, pacman:souradnice;
   pocetZradla:integer;
   prvni,posledni:phledani;
-  duchove:array [1..127] of souradnice;
+  duchove,smerDuchu:array [1..127] of souradnice;
   slovo:string;
   score, cas:longint;
 
@@ -78,32 +78,7 @@ var
 begin
   pohnulSe:=false;
   Randomize;
-  case obtiznost of
-    3:begin
-      for i:=-1 to 1 do begin
-        for j:=-1 to 1 do begin
-          if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
-            if ((bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].vzdalenostOdPac)
-            < (bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac)) then begin
-              bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
-              bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch:=true;
-              gotoxy(duchove[duchNo].x, duchove[duchNo].y);
-              if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
-                write('.')
-              else
-                write(' ');
-              gotoxy(duchove[duchNo].x + i, duchove[duchNo].y + j);
-              write('Q');
-              duchove[duchNo].x := duchove[duchNo].x + i;
-              duchove[duchNo].y := duchove[duchNo].y + j;
-              exit;
-            end;
-          end;
-        end;
-      end;
-    end;
-    2:begin
-      if ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) < 16) then begin
+  if ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) <= obtiznost) then begin                    {pokud je pacman v dosahu}
         for i:=-1 to 1 do begin
           for j:=-1 to 1 do begin
             if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
@@ -125,97 +100,60 @@ begin
             end;
           end;
         end;
-      end else begin
-        repeat
-          i:=(Random(3)-1);
-          j:=(Random(3)-1);
-          if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
+  end else begin
+     if not(bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka) then begin                       {duch jde nahodne rovne dokud nenarazi na krizovatku}
+        bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
+        bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
+        gotoxy(duchove[duchNo].x, duchove[duchNo].y);
+        if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
+          write('.')
+        else
+          write(' ');
+        gotoxy(duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y);
+        write('Q');
+        duchove[duchNo].x := duchove[duchNo].x + smerDuchu[duchNo].x;
+        duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
+     end else begin                {ducha narazil na krizovatku - hleda novy random smer}
+       repeat
+          smerDuchu[duchNo].x:=(Random(3)-1);
+          smerDuchu[duchNo].y:=(Random(3)-1);
+          if (((abs(smerDuchu[duchNo].x)-abs(smerDuchu[duchNo].y))<>0)
+          and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].volno)) then begin
             bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
-            bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch:=true;
+            bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
             gotoxy(duchove[duchNo].x, duchove[duchNo].y);
             if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
                write('.')
             else
             write(' ');
-            gotoxy(duchove[duchNo].x + i, duchove[duchNo].y + j);
+            gotoxy(duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y);
             write('Q');
-            duchove[duchNo].x := duchove[duchNo].x + i;
-            duchove[duchNo].y := duchove[duchNo].y + j;
+            duchove[duchNo].x := duchove[duchNo].x + smerDuchu[duchNo].x;
+            duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
             pohnulSe:=true;
           end;
         until pohnulSe;
-      end;
-    end;
-    1:begin
-      if ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) < 8) then begin
-        for i:=-1 to 1 do begin
-          for j:=-1 to 1 do begin
-            if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
-              if ((bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].vzdalenostOdPac)
-              < (bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac)) then begin
-                bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
-                bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch:=true;
-                gotoxy(duchove[duchNo].x, duchove[duchNo].y);
-                if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
-                  write('.')
-                else
-                  write(' ');
-                gotoxy(duchove[duchNo].x + i, duchove[duchNo].y + j);
-                write('Q');
-                duchove[duchNo].x := duchove[duchNo].x + i;
-                duchove[duchNo].y := duchove[duchNo].y + j;
-                exit;
-              end;
-            end;
-          end;
-        end;
-      end else begin
-        repeat
-          i:=(Random(3)-1);
-          j:=(Random(3)-1);
-          if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)) then begin
-            bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
-            bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch:=true;
-            gotoxy(duchove[duchNo].x, duchove[duchNo].y);
-            if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
-               write('.')
-            else
-            write(' ');
-            gotoxy(duchove[duchNo].x + i, duchove[duchNo].y + j);
-            write('Q');
-            duchove[duchNo].x := duchove[duchNo].x + i;
-            duchove[duchNo].y := duchove[duchNo].y + j;
-            pohnulSe:=true;
-          end;
-        until pohnulSe;
-      end;
-    end;
+     end;
   end;
-
 end;
 
-begin                                    {http://home.pf.jcu.cz/~edpo/program/kap19.html}
+begin
 
   repeat
     ClrScr;
     repeat                    {obtiznost}
-      writeln('Zvol si obtiznost:1-nejlehci..2..3-nejtezsi');
+      writeln('Zvol si obtiznost, respektive jak daleko duchove uvidi');
       readln(slovo);
-      case slovo of
-        '1':begin
-          obtiznost:=1;
-          endOfGame:=1;
+      endOfGame:=1;
+      Try
+        obtiznost:=(StrToInt(slovo));
+      except
+        On E : EConvertError do begin
+          ClrScr;
+          Writeln ('Musis cislo');
+          endOfGame:=-1;
         end;
-        '2':begin
-          obtiznost:=2;
-          endOfGame:=1;
-        end;
-        '3':begin
-          obtiznost:=3;
-          endOfGame:=1;
-        end;
-        else ClrScr;
-      end
+      end;
     until (endOfGame=1);
 
     ClrScr;
@@ -228,6 +166,7 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
         bludiste[i,j].volno:=false;
         bludiste[i,j].zradlo:=false;
         bludiste[i,j].jeTu:=false;
+        bludiste[i,j].krizovatka:=false;
       end;
     end;
     pocetZradla:=0;
@@ -269,10 +208,27 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
     end;
     close(input);
 
+    for j:=1 to y do begin                              {ulozeni krizovatek}
+      for i:=1 to x do begin
+        if (bludiste[i,j].volno) then begin
+          if ((bludiste[i+1,j].volno and bludiste[i,j+1].volno) or (bludiste[i+1,j].volno and bludiste[i,j-1].volno)
+          or (bludiste[i-1,j].volno and bludiste[i,j+1].volno) or (bludiste[i-1,j].volno and bludiste[i,j-1].volno)) then begin
+            bludiste[i,j].krizovatka:=true;
+          end;
+        end;
+      end;
+    end;
+
     puvodniSmer.x := 0;
     puvodniSmer.y := 0;
     smer.x := 0;
     smer.y := 0;
+    for i:=1 to pocetDuchu do begin
+      repeat
+        smerDuchu[i].x:=(Random(3)-1);
+        smerDuchu[i].y:=(Random(3)-1);
+      until (((abs(smerDuchu[i].x)-abs(smerDuchu[i].y))<>0) and (bludiste[duchove[i].x+smerDuchu[i].x,duchove[i].y+smerDuchu[i].y].volno));
+    end;
 
 
     score:=0;
@@ -293,6 +249,9 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       end;
       writeln();
     end;}
+
+    repeat                   {dokud hrac nezmackne klavesu, hra nezacne}
+    until KeyPressed ;
 
     repeat                  {HRA}
       if KeyPressed then begin
@@ -371,7 +330,7 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
         end;
       end;
       cas:=cas + 2;
-      delay(200);
+      delay(250);
       NoSound;
 
     until (endOfGame < 1);        {konec hry}
@@ -381,9 +340,9 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
       -1:begin
         for i:=10 downto 1 do begin
           sound(i*250);
-          delay(150);
+          delay(200);
         end;
-        delay(200);
+        delay(400);
         NoSound;
         writeln('prohral jsi');
         writeln('score:',score);
@@ -402,9 +361,6 @@ begin                                    {http://home.pf.jcu.cz/~edpo/program/ka
     if (slovo = '1') then
       endOfGame:=1;
   until endOfGame <> 1;
-
-
-
 
 
 end.
