@@ -1,4 +1,5 @@
-program pacmanHRA;              {https://www.freepascal.org/docs-html/rtl/crt/window.html ... dalo by se pouzit na zrychleni ve vypisovani}
+program pacmanZapoctak;
+
 uses
   sysutils,crt;
 
@@ -27,6 +28,7 @@ var
   pocetZradla:integer;
   prvni,posledni:phledani;
   duchove,smerDuchu:array [1..127] of souradnice;
+  cekalDuch,drziSmer: array [1..127] of boolean;
   slovo:string;
   score, cas:longint;
 
@@ -71,13 +73,29 @@ begin
   bludiste[pacman.x,pacman.y].vzdalenostOdPac:=0;
 end;
 
+procedure randomPohybDucha(duchNo:shortint);
+begin
+  repeat
+        smerDuchu[duchNo].x:=(Random(3)-1);
+        smerDuchu[duchNo].y:=(Random(3)-1);
+  until (((abs(smerDuchu[duchNo].x)-abs(smerDuchu[duchNo].y))<>0)
+  and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x,duchove[duchNo].y + smerDuchu[duchNo].y].volno));
+end;
+
 procedure pohybDuchu(duchNo:shortint);
 var
-  i,j:shortint;
-  pohnulSe:boolean;
+  i,j,counter:shortint;
+  pohnulSe,jdiJinam:boolean;
 begin
   pohnulSe:=false;
-  if ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) <= obtiznost) then begin                    {pokud je pacman v dosahu}
+  jdiJinam:=false;
+  counter:=0;
+  i:=(random(5));
+  if ((i=0) and (bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka) and not(drziSmer[duchNo])) then begin  {v jednom z peti pripadu, kdy je duch na krizovatce pujde duch, misto za packmanem, random}
+    jdiJinam:=true;
+    drziSmer[duchNo]:=true;
+  end;
+  if ( not(jdiJinam) and ((bludiste[duchove[duchNo].x, duchove[duchNo].y].vzdalenostOdPac) <= obtiznost) and not(drziSmer[duchNo])) then begin                    {pokud je pacman v dosahu}
         for i:=-1 to 1 do begin
           for j:=-1 to 1 do begin
             if (((abs(i)-abs(j))<>0) and (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno)
@@ -101,26 +119,40 @@ begin
           end;
         end;
   end else begin
-     if (not(bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka)
-     and not(bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch)) then begin                       {duch jde nahodne rovne dokud nenarazi na krizovatku}
-        bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
-        bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
-        gotoxy(duchove[duchNo].x, duchove[duchNo].y);
-        if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
-          write('.')
-        else
-          write(' ');
-        gotoxy(duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y);
-        write('Q');
-        duchove[duchNo].x := duchove[duchNo].x + smerDuchu[duchNo].x;
-        duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
-     end else begin                {ducha narazil na krizovatku - hleda novy random smer}
-       repeat
-          Randomize;
-          smerDuchu[duchNo].x:=(Random(3)-1);
-          smerDuchu[duchNo].y:=(Random(3)-1);
-          if (((abs(smerDuchu[duchNo].x)-abs(smerDuchu[duchNo].y))<>0)
-          and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].volno)
+     if ((not(jdiJinam) or drziSmer[duchNo]) and not(bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka) and (not(cekalDuch[duchNo]))
+     and (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x,duchove[duchNo].y + smerDuchu[duchNo].y].volno)) then begin                       {duch jde nahodne rovne dokud nenarazi na krizovatku}
+        if (not(bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch)) then begin
+          bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
+          bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
+          gotoxy(duchove[duchNo].x, duchove[duchNo].y);
+          if (bludiste[duchove[duchNo].x, duchove[duchNo].y].zradlo) then
+            write('.')
+          else
+            write(' ');
+          gotoxy(duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y);
+          write('Q');
+          duchove[duchNo].x := duchove[duchNo].x + smerDuchu[duchNo].x;
+          duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
+          if (bludiste[duchove[duchNo].x, duchove[duchNo].y].krizovatka) then
+            drziSmer[duchNo]:=false;
+       end else begin
+          cekalDuch[duchNo]:=true;
+          drziSmer[duchNo]:=false;
+       end;
+     end else begin                {duch narazil na krizovatku, nebo uz druhe kolo se nemohl pohnout svym smerem - hleda novy random smer}
+       for i:=-1 to 1 do begin
+         for j:=-1 to 1 do begin
+           if abs(i)-abs(j)<>0 then begin
+             if (not(bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].volno) or (bludiste[duchove[duchNo].x + i, duchove[duchNo].y + j].duch)) then begin
+               inc(counter);            {zjistim, jestli ma duch v momentalni situaci sanci se nekam pohnout}
+             end;
+           end;
+         end;
+       end;
+       if counter <> 4 then begin            {pokud je obklicen ze vsech stran, respektive nemuze nikam jit, tak nikam ani nepujde}
+         repeat
+          randomPohybDucha(duchNo);
+          if ( (bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].volno)
           and not(bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch)) then begin
             bludiste[duchove[duchNo].x, duchove[duchNo].y].duch:=false;
             bludiste[duchove[duchNo].x + smerDuchu[duchNo].x, duchove[duchNo].y + smerDuchu[duchNo].y].duch:=true;
@@ -134,11 +166,15 @@ begin
             duchove[duchNo].x := duchove[duchNo].x + smerDuchu[duchNo].x;
             duchove[duchNo].y := duchove[duchNo].y + smerDuchu[duchNo].y;
             pohnulSe:=true;
+            cekalDuch[duchNo]:=false;
           end;
         until pohnulSe;
+       end;
      end;
   end;
 end;
+
+
 
 begin
 
@@ -200,6 +236,7 @@ begin
         end;
           'Q':begin
             bludiste[i,j].volno:=true;
+            bludiste[i,j].duch:=true;
             bludiste[i,j].zradlo:=true;
             bludiste[i,j].znak:=c;
             inc(pocetDuchu);
@@ -213,7 +250,7 @@ begin
     end;
     close(input);
 
-    for j:=1 to y do begin                              {ulozeni krizovatek}
+    for j:=1 to y do begin           {ulozeni krizovatek}
       for i:=1 to x do begin
         if (bludiste[i,j].volno) then begin
           if ((bludiste[i+1,j].volno and bludiste[i,j+1].volno) or (bludiste[i+1,j].volno and bludiste[i,j-1].volno)
@@ -224,22 +261,22 @@ begin
       end;
     end;
 
-    puvodniSmer.x := 0;
+    puvodniSmer.x := 0;              {pro pohyb packmana}
     puvodniSmer.y := 0;
     smer.x := 0;
     smer.y := 0;
+
     for i:=1 to pocetDuchu do begin
-      repeat
-        smerDuchu[i].x:=(Random(3)-1);
-        smerDuchu[i].y:=(Random(3)-1);
-      until (((abs(smerDuchu[i].x)-abs(smerDuchu[i].y))<>0) and (bludiste[duchove[i].x+smerDuchu[i].x,duchove[i].y+smerDuchu[i].y].volno));
+      randomPohybDucha(i);
+      cekalDuch[i]:=false;           {vyuzito pro fix toho, kdy se packman nepohnul svym smerem vice nez jedno kolo}
+      drziSmer[i]:=false;
     end;
 
 
     score:=0;
     cas:=1;
 
-    for j:=1 to y do begin             {vypis bludiste}
+    for j:=1 to y do begin           {vypis bludiste}
       for i:=1 to x do begin
         write(bludiste[i,j].znak)
       end;
@@ -258,8 +295,9 @@ begin
     repeat                   {dokud hrac nezmackne klavesu, hra nezacne}
     until KeyPressed ;
 
-    repeat                  {HRA}
-      if KeyPressed then begin
+    repeat                  {---HRA---}
+       Randomize;
+       if KeyPressed then begin
         c:=readkey;
         if ord(c) = 0 then begin                  {pokud je na první pokus ord(c)=0 -> znamená to že je stisknutá klávesa extended}
           c:=readkey;                             {nastavení směru pacmana}
@@ -334,19 +372,13 @@ begin
       end;
       cas:=cas + 2;
       delay(220);
-      NoSound;
+
 
     until (endOfGame < 1);        {konec hry}
 
     clrscr;
     case endOfGame of
       -1:begin
-        for i:=10 downto 1 do begin
-          sound(i*250);
-          delay(200);
-        end;
-        delay(400);
-        NoSound;
         writeln('prohral jsi');
         writeln('score:',score);
         writeln('pro konec zmackni ENTER...');
